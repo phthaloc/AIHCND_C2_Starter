@@ -1,0 +1,97 @@
+#+TITLE:FDA Submission
+#+DESCRIPTION:Udacity Ai in healthcare nanodegree programm. Project 1: Pneumonia from X-rays classification. June 2020
+#+Author:Udo Dehm
+
+**Name:** Udo Dehm
+
+**Name of Device:** PneumoniaXNet
+
+* Algorithm Description 
+** General Information
+**Intended Use Statement:** 
+Assisting radiologists in the detection of pneumonia on X-ray chest images.
+
+**Indications for Use:**
+- Automated detection of pneumonia from chest X-rays in clinical settings.
+- Analysing chest X-rays in regions with inadequate access to diagnostic imaging specialists.
+- TODO:Predictions on males and females between the ages of xx to xx years.
+- X-ray views: posteroanterior (PA) view and/or erect anteroposterior (AP) chest view 
+- TODO:With no prior history of xxx disease
+
+- TODO:not sure if this should be mentioned because this would require to set the FN fining very low:
+  (Emergency) workflow re-prioritization:
+  The probability output of the algorithm can be used to prioritize images which have to be analyzed more urgently by an imaging specialist.
+**Device Limitations:**
+- TODO:PneumoniaXNet is expected to have lower performance in the presence of xxx diseases.
+- PneumoniaXNet should be run on a CUDA capable GPU (e.g. local server or cloud server with GPU access).
+  This is especially important if the algorithm is used in emergency situations or any other situations where getting a result quickly is important
+
+**Clinical Impact of Performance:**
+- Enhancing workflow by providing fast and reliable pneumonia detection from X-ray images
+- If algorithm predicts a positive pneumonia case, a radiologist can prioritize to analyse this case more urgently.
+  The patient could be treated sooner.
+- It is strongly recommended that the device is used as an assisting device for an imaging specialist.
+  If the algorithm predicts a false positive (FP) the radiologist can always intervene and prevent a patient from a useless pneumonia treatment.
+  If the algorithm predicts a false negative (FN) this could lead to a loss of time for the patient's treatment.
+  A trained radiologist should detect the pneumonia disease in this case.
+
+** Algorithm Design and Function
+<< Insert Algorithm Flowchart >>
+
+**DICOM Checking Steps:**
+
+**Preprocessing Steps:**
+
+**CNN Architecture:**
+
+** Algorithm Training
+**Parameters:**
+- Types of augmentation used during training
+  - horizontal flip: useful because we have X-ray images from both viewing positions PA and AP.
+    The algorithm will be able to predict pneumonia presence from both viewing positions.
+  - rotation
+  - TODO
+- Batch size
+- Optimizer learning rate: TODO:Adam optimizer with initial learning rate of xxx
+- Layers of pre-existing architecture that were frozen
+- Layers of pre-existing architecture that were fine-tuned
+- Layers added to pre-existing architecture
+
+<< Insert algorithm training performance visualization >> 
+
+<< Insert P-R curve >>
+
+**Final Threshold and Explanation:**
+** Databases
+ (For the below, include visualizations as they are useful and relevant)
+
+**Description of Training Dataset:** 
+
+**Description of Validation Dataset:**
+** Ground Truth
+The ground truth for the used data was created by the NIH.
+They extracted the labels with the help of a NLP algorithm running over radiology reports which are not publicly available.
+This process is prone to some erroneous labels because the NLP algorithm might misinterpret complex sentence structures.
+The NIH reports a NLP labeling accuracy of >90%.
+The NIH states that they had to deal with uncertainties in the radiology reports (see also [[https://www.kaggle.com/nih-chest-xrays/data].
+Often they classified such uncertain cases as 'no finding'.
+The 'no finding' label can also contain diseases which are not considered here.
+They do not have to be /normal/.
+All these limitations in data labels translate directly to the resulting algorithm which was trained on this data.
+
+The benefit of this method is to be able to label huge datasets in a very fast and cost efficient way
+
+** FDA Validation Plan
+TODO: Describe how a FDA validation plan would be conducted for the algorithm.
+**Patient Population Description for FDA Validation Dataset:**
+- Age ranges
+- sex
+- type of imaging modality
+- body part imaged
+- prevalence of disease of interest
+- any other diseases that should be included or exluded as comorbidities in the population
+
+**Ground Truth Acquisition Methodology:**
+shor explanation of how to obtain an optimal ground truth
+**Algorithm Performance Standard:**
+chose a performance standard based on based on paper of andrew ng
