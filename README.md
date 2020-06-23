@@ -1,3 +1,9 @@
+# Running the scripts:
+Execution order:
+1. EDA.ipynb
+2. Build\ and\ train\ model.ipynb
+3. Inference.ipynb
+
 # Pneumonia Detection from Chest X-Rays
 
 ## Project Overview
