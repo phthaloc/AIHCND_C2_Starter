@@ -23,7 +23,7 @@ Description of a possible clinical setting:
 - Obtaining X-ray image of a patient's chest (PA or AP view).
 - Sending scan in DICOM format to a remote server with installed PneumoniaXNet software for processing.
 - Checking the DICOM file for compatibility (see [[DICOM Checking Steps]]).
-- If the scan passes the compatibility check it is preprocessed (see [[TODO: Preprocessing Steps]]).
+- If the scan passes the compatibility check it is preprocessed (see [[Preprocessing Steps]]).
 - Feed the X-ray image into the machine learning algorithm PneumoniaXNet.
 - The PneumoniaXNet classifier will output one of two diagnostical predictions: patient has pneumonia (1) or patient has no pneumonia (0).
 - The result is sent to a radiologist who will validate the result and compile a final diagnosis.
@@ -45,10 +45,12 @@ Description of a possible clinical setting:
   If the algorithm predicts a false negative (FN) this could lead to a loss of time for the patient's treatment.
   A trained radiologist should detect the pneumonia disease in this sirious case.
   False negatives are much more severe than false positives.
-  Therefore the PneumoniaXNet device tries to prevent false negatives by adjusting the classifier threshold (see section [[TODO: Final Threshold and Explanation]]).
+  Therefore the PneumoniaXNet device tries to prevent false negatives by adjusting the classifier threshold (see section [[Final Threshold and Explanation]]).
 
-** TODO: Algorithm Design and Function
-<< Insert Algorithm Flowchart or better architecture diagram of model >>
+** Algorithm Design and Function
+#+CAPTION: Flowchart of the PnuemoniaXNet algorithm (inference).
+#+name: fig:flowchart
+[[./figs/pneumoniaxnet_flowchart.png]]
 
 *** DICOM Checking Steps
 Before a DICOM file is preprocessed and fed to the PneumoniaXNet algorithm it is checked if it contains the correct properties. The following things are checked:
@@ -56,50 +58,65 @@ Before a DICOM file is preprocessed and fed to the PneumoniaXNet algorithm it is
 - Body part must be 'chest'.
 - Patient position must be 'PA' or 'AP'.
 
-*** TODO: Preprocessing Steps
+*** Preprocessing Steps
 The following preprocessing steps are performed on each image before it is fed into the PneumoniaXNet algorithm:
-- Types of augmentation used during training
-  - horizontal flip: useful because we have X-ray images from both viewing positions PA and AP.
-    The algorithm will be able to predict pneumonia presence from both viewing positions.
-  - rotation
-  - TODO: describe augmentation and its parameters used
+- resizing image to spatial size 224x224 pixels
+- convert image from grayscale to RGB with dimensions 1x224x224x3 (the first dimension is the batch size, multiple images can be fed simultaneously in batches into the algorithm)
+- DenseNet121 specific preprocessing steps: input pixel values are scaled between 0 and 1 and each channel is normalized with respect to the ImageNet dataset
 
-*** TODO: CNN Architecture
+*** CNN Architecture
 describe the architecture of the classifier
-- we use transfer learning
-- freeze most layers
-- train only last few layers
+We use the Keras implementation of the DenseNet121 model as base model.
+We cut the last few (dense) layers of the net and replace them with the following additional layers:
+- Global average pooling layer
+- dense layer with 1024 neurons and ReLu activation with dropout 0.5
+- dense layer with 512 neurons and ReLu activation with dropout 0.5
+- dense layer with 256 neurons and ReLu activation
+- dense layer with 1 neuron and sigmoid activation (output layer)
+We freeze all trainable parameters of the base net except of the parameters of the last 7 layers.
+These parameters in addition to the parameters of the additional layers above sum up to the trainable parameters.
+In total we have 1,872,129 trainable parameters.
+This so called transfer learning is a common and efficient way of training convolutional neural networks.
+The imported DenseNet121 model has previously been trained on the ImageNet dataset.
 
 ** Algorithm Training
-*** TODO: Parameters used for training:
-- Batch size
-- Optimizer learning rate: TODO:Adam optimizer with initial learning rate of xxx
-- Layers of pre-existing architecture that were frozen
-- Layers of pre-existing architecture that were fine-tuned
-- Layers added to pre-existing architecture
+*** Parameters used for training:
+- Batch size: 16 images
+- Optimizer learning rate: Adam optimizer with initial learning rate of 0.001
+- image augmentation used during training:
+  - horizontal flip: useful because we have X-ray images from both viewing positions PA and AP.
+    The algorithm will be able to predict pneumonia presence from both viewing positions.
+  - rotation range 10 degrees
+  - height shift range 0.1
+  - width shift range 0.1
+  - shear range 0.1
+  - zoom range 0.15
+
+The model performance and training progress can be seen in figures [[fig:loss]], [[fig:testprcurve]], and [[fig:testroccurve]]
 
 #+CAPTION: PnuemoniaXNet training performance: Training and validation losses.
 #+name: fig:loss
-[[./figs/models/model1/train_valid_loss_progress.png]]
-
-#+CAPTION: Validation set precision-recall curve
-#+name: fig:validprcurve
-[[./figs/models/model1/valid_precision_recall_curve.png]]
+[[./figs/models/model_densenet121_1/train_valid_loss_progress.png]]
 
 #+CAPTION: Testing set precision-recall curve
 #+name: fig:testprcurve
-[[./figs/models/model1/test_precision_recall_curve.png]]
-
-#+CAPTION: Validation set ROC curve
-#+name: fig:validroccurve
-[[./figs/models/model1/valid_roc_curve.png]]
+[[./figs/models/model_densenet121_1/test_precision_recall_curve.png]]
 
 #+CAPTION: Testing set ROC curve
 #+name: fig:testroccurve
-[[./figs/models/model1/test_roc_curve.png]]
+[[./figs/models/model_densenet121_1/test_roc_curve.png]]
 
-*** TODO: Final Threshold and Explanation
-describe the performance statistics and threshold used in final validation
+*** Final Threshold and Explanation
+Our goal is to minimize the false negative (FN) predictions.
+Since the F1 score is proportional to 1/FN we are interested in maximizing the F1 score.
+Furthermore, the F1 metrics enables us to compare our results with previous work (see [[Algorithm Performance Standard]]).
+
+To maximize the F1 score we chose the prediction threshold 0.216 (see figure [[fig:threshold]]).
+
+#+CAPTION: Threshold selection based on F1 metric.
+#+name: fig:threshold
+[[./figs/models/model_densenet121_1/f1_vs_threshold.png]]
+
 
 ** Databases
 
@@ -138,29 +155,30 @@ We can say that according to the
 #+name: fig:pneumoniacomorbidities
 [[./figs/eda/cooccurance_matrices.png]]
 
-*** TODO: Description of Training Dataset
+*** Description of Training Dataset
 80% of the the patients in the NIH chest X-ray dataset are assigned to the (raw) training set.
 We split the dataset by patient to ensure that a patient can only be in one dataset (training, validation or testing set).
 The training set contains much more negative samples (no pneumonia) than positive samples (has pneumonia).
 We balance the training set by randomly chosing negative samples until we have the number of positive and negative samples.
 The rest negative samples in this dataset are discarded.
 
-The final cardinality of the training dataset is
+The final cardinality of the training dataset is 2302.
 
-*** TODO: Description of Validation Dataset
+*** Description of Validation Dataset
 10% of all patients are assigned to the validation dataset.
-This set is used for
+This set is used for picking the best performing model (weights) during training.
 In a clinical setting we assume a higher incidence of X-ray images with pneumonia than in a dataset which maps a 'complete population'.
 Therefore we do not sample data points from the validation set until we reach 1.3% of pneumonia cases in the dataset.
-Instead, we randomly sample
+Instead, we randomly sample data points so that we get a ratio of 20%/80% of positive and negative samples.
 
-The final cardinality of the validation dataset is
+The final cardinality of the validation dataset is 745.
 
 *** Description of Testing Dataset
-10% of the patients are used for testing the performance of the PneumoniaXNet algorithm
+10% of the patients are used for testing the performance of the PneumoniaXNet algorithm.
+This dataset is used to finally evaluate the model performance.
+It has the same ration between positive and negative samples as the validation dataset: 20%/80%.
 
-
-The final cardinality of the testing dataset is
+The final cardinality of the testing dataset is 640.
 
 ** Ground Truth
 The ground truth for the used data was created by the NIH.
@@ -177,7 +195,7 @@ On the other hand the benefit of this method is to be able to label huge dataset
 
 ** FDA Validation Plan
 
-*** TODO: Patient Population Description for FDA Validation Dataset
+*** Patient Population Description for FDA Validation Dataset
 In this section we consider an ideal dataset that might be constructed by a clinical partner for the FDA validation dataset.
 The demographics of the FDA validation dataset should be similar to the NIH chest X-ray dataset on which the PneumoniaXNet algorithm was trained.
 This means:
@@ -185,7 +203,7 @@ This means:
 - sex: male and females
 - type of imaging modality: DX (digital radiology)
 - body part imaged: chest
-- TODO: prevalence of disease of interest: ... % so that it matches the validation set used to evaluate the PneumoniaXNet algorithm
+- prevalence of disease of interest: 20 % so that it matches the validation set used to evaluate the PneumoniaXNet algorithm
 
 *** Ground Truth Acquisition Methodology
 The most affordable and reliable method of acquiring ground truth labels is to get multiple experts, e.g. radiologists to label the images for presence of pneumonia.
@@ -196,7 +214,7 @@ The gold standard approach would be to take pathological samples of the tissue.
 This process is very time-consuming and expensive.
 If this method is available, even for a sub-sample of the available data, it will be valuable for evaluating the performance of the algorithm.
 
-*** TODO: Algorithm Performance Standard
+*** Algorithm Performance Standard
 In a previous study done by [[https://arxiv.org/pdf/1711.05225.pdf][Rajpurkar et al.]] the authors trained an algortihm for detecting pneumonia.
 They measured the performance of their model by comparing the F1 score of the model predictions with the averaged F1 score of four expert radiologists' predictions.
 To get comparable evaluation results we use the F1 score as performance metric.
@@ -204,4 +222,4 @@ The F1 score is the harmonic mean of recall and precission.
 The four expert radiologists achieved an averaged F1 score of 0.387.
 We use this "radiologist-level value" as standard to beat.
 
-TODO: write something about performance of the PneumoniaXNet algorithm and how it outperforms the radiologist-level performance.
+With a F1 score of 0.41 the PneumoniaXNet algorithm performs at least as good as expert radiologists.
