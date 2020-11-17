@@ -1,7 +1,6 @@
 data
 .ipynb_checkpoints
 .auctex-auto
-figs
 data_summary.hdf
 models
 *.tex
