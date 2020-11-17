@@ -2,5 +2,4 @@ data
 .ipynb_checkpoints
 .auctex-auto
 data_summary.hdf
-models
 *.tex
