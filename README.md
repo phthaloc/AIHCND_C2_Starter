@@ -2,9 +2,9 @@
 
 ## Running the scripts:
 Execution order:
-1. EDA.ipynb
-2. Build\ and\ train\ model.ipynb
-3. Inference.ipynb
+1. eda.ipynb
+2. model.ipynb
+3. inference.ipynb
 
 ## Overview
 
@@ -64,9 +64,9 @@ Pixel Spacing.
 
 ### 1. Exploratory Data Analysis
 
-The first part of this project will involve exploratory data analysis (EDA) to understand and describe the content and nature of the data.
+The file eda.ipynb contains the exploratory data analysis (EDA) of the dataset to understand and describe the content and nature of the data.
 
-Note that much of the work performed during your EDA will enable the completion of the final component of this project which is focused on documentation of your algorithm for the FDA. This is described in a later section, but some important things to focus on during your EDA may be: 
+Some analysis done during EDA: 
 
 * The patient demographic data such as gender, age, patient position,etc. (as it is available)
 * The x-ray views taken (i.e. view position)
@@ -77,7 +77,7 @@ Note that much of the work performed during your EDA will enable the completion 
 * Number of disease per patient 
 * Pixel-level assessments of the imaging data for healthy & disease states of interest (e.g. histograms of intensity values) and compare distributions across diseases.
 
-### 2. Building and Training Your Model
+### 2. Building and Training the CNN Model
 
 **Training and validating Datasets**
 
@@ -89,7 +89,7 @@ From your findings in the EDA component of this project, curate the appropriate 
 
 **Model Architecture**
 
-In this project, you will fine-tune an existing CNN architecture to classify x-rays images for the presence of pneumonia. There is no required archictecture required for this project, but a reasonable choice would be using the VGG16 architecture with weights trained on the ImageNet dataset. Fine-tuning can be performed by freezing your chosen pre-built network and adding several new layers to the end to train, or by doing this in combination with selectively freezing and training some layers of the pre-trained network. 
+reasonable choice would be using the VGG16 architecture with weights trained on the ImageNet dataset. Fine-tuning can be performed by freezing your chosen pre-built network and adding several new layers to the end to train, or by doing this in combination with selectively freezing and training some layers of the pre-trained network. 
 
 
 **Image Pre-Processing and Augmentation** 
@@ -122,77 +122,226 @@ For this project, create a DICOM wrapper that takes in a standard DICOM file and
 * Proper body part in acquisition
 
 
-### 4. FDA  Submission
+## Results in form of a FDA Submission
 
-For this project, you will complete the following steps that are derived from the FDA's official guidance on both the algorithm description and the algorithm performance assessment. __*Much of this portion of the project relies on what you did during your EDA, model building, and model training. Use figures and statistics from those earlier parts in completing the following documentation.*__
+**Name of Device:** PneumoniaXNet
 
-**1. General Information:**
+### Algorithm Description
+#### General Information
+##### Intended Use Statement
+Assisting radiologists in the detection of pneumonia on X-ray chest images.
+It is explicitly stated that the AI based algorithm PneumoniaXNet is intended to be used under the supervision of an expert like a radiologist or other clinician with expert knowledge.
 
-* First, provide an Intended Use statement for your model 
-* Then, provide some indications for use that should include: 
-    * Target population
-    * When your device could be utilized within a clinical workflow
-* Device limitations, including diseases/conditions/abnormalities for which the device has been found ineffective and should not be used
-* Explain how a false positive or false negative might impact a patient
+##### Indications for Use
+Automated detection of pneumonia from chest X-rays in non-emergency clinical settings.
+The device PneumoniaXNet is intended to use as a diagnostic tool if the following conditions are fullfilled:
+- Predictions on male and female patients (see figure [[fig:sexdist]] for data distribution) between the ages of about 10 to 90 years (see figure [[fig:agedist]] for data distribution).
+- Chest X-ray view positions: posteroanterior (PA) view and/or erect anteroposterior (AP) chest view (see figure [[fig:posdist]] for data distribution).
+- Optionally (on rare occasions): Analysing chest X-rays in regions with inadequate access to diagnostic imaging specialists.
+  Getting a rough idea of the disease of a patient is better than nothing.
 
-**2. Algorithm Design and Function**
+Description of a possible clinical setting:
+- Obtaining X-ray image of a patient's chest (PA or AP view).
+- Sending scan in DICOM format to a remote server with installed PneumoniaXNet software for processing.
+- Checking the DICOM file for compatibility (see [[DICOM Checking Steps]]).
+- If the scan passes the compatibility check it is preprocessed (see [[Preprocessing Steps]]).
+- Feed the X-ray image into the machine learning algorithm PneumoniaXNet.
+- The PneumoniaXNet classifier will output one of two diagnostical predictions: patient has pneumonia (1) or patient has no pneumonia (0).
+- The result is sent to a radiologist who will validate the result and compile a final diagnosis.
 
-In this section, describe your _fully trained_ algorithm and the DICOM header checks that you have built around it. Include a flowchart that describes the following: 
+##### Device Limitations
+- The PneumoniaXNet device does not achieve 100% accuracy.
+  Therefore it is advised that this classifiers predictions are only used as a supplementary diagnosis tool.
+  The final diagnosis should always be compiled by an expert like a radiologist.
+- PneumoniaXNet should be run on a CUDA capable GPU (e.g. local server or cloud server with GPU access).
+  This is especially important if the algorithm is used in situations where getting a result quickly is important
 
-* Any pre-algorithm checks you perform on your DICOM
-* Any preprocessing steps performed by your algorithm on the original images (e.g. normalization)
-    * Note that this section should _not_ include augmentation
-* The architecture of the classifier
+##### Clinical Impact of Performance
+- Enhancing workflow by providing fast and reliable pneumonia detection from X-ray images
+- If algorithm predicts a positive pneumonia case, a radiologist can prioritize to analyse this case more urgently.
+  The patient could be treated sooner.
+- It is strongly recommended that the device is used as an assisting device for an imaging specialist.
+  If the algorithm predicts a false positive (FP) the radiologist can always intervene and prevent a patient from a useless pneumonia treatment.
+  The only downside of a false positive should be some wasted time.
+  If the algorithm predicts a false negative (FN) this could lead to a loss of time for the patient's treatment.
+  A trained radiologist should detect the pneumonia disease in this sirious case.
+  False negatives are much more severe than false positives.
+  Therefore the PneumoniaXNet device tries to prevent false negatives by adjusting the classifier threshold (see section [[Final Threshold and Explanation]]).
+
+#### Algorithm Design and Function
+#+CAPTION: Flowchart of the PnuemoniaXNet algorithm (inference).
+#+name: fig:flowchart
+[[./figs/pneumoniaxnet_flowchart.png]]
+
+##### DICOM Checking Steps
+Before a DICOM file is preprocessed and fed to the PneumoniaXNet algorithm it is checked if it contains the correct properties. The following things are checked:
+- Modality must be 'DX'.
+- Body part must be 'chest'.
+- Patient position must be 'PA' or 'AP'.
+
+##### Preprocessing Steps
+The following preprocessing steps are performed on each image before it is fed into the PneumoniaXNet algorithm:
+- resizing image to spatial size 224x224 pixels
+- convert image from grayscale to RGB with dimensions 1x224x224x3 (the first dimension is the batch size, multiple images can be fed simultaneously in batches into the algorithm)
+- DenseNet121 specific preprocessing steps: input pixel values are scaled between 0 and 1 and each channel is normalized with respect to the ImageNet dataset
+
+##### CNN Architecture
+describe the architecture of the classifier
+We use the Keras implementation of the DenseNet121 model as base model.
+We cut the last few (dense) layers of the net and replace them with the following additional layers:
+- Global average pooling layer
+- dense layer with 1024 neurons and ReLu activation with dropout 0.5
+- dense layer with 512 neurons and ReLu activation with dropout 0.5
+- dense layer with 256 neurons and ReLu activation
+- dense layer with 1 neuron and sigmoid activation (output layer)
+We freeze all trainable parameters of the base net except of the parameters of the last 7 layers.
+These parameters in addition to the parameters of the additional layers above sum up to the trainable parameters.
+In total we have 1,872,129 trainable parameters.
+This so called transfer learning is a common and efficient way of training convolutional neural networks.
+The imported DenseNet121 model has previously been trained on the ImageNet dataset.
+
+#### Algorithm Training
+##### Parameters used for training:
+- Batch size: 16 images
+- Optimizer learning rate: Adam optimizer with initial learning rate of 0.001
+- image augmentation used during training:
+  - horizontal flip: useful because we have X-ray images from both viewing positions PA and AP.
+    The algorithm will be able to predict pneumonia presence from both viewing positions.
+  - rotation range 10 degrees
+  - height shift range 0.1
+  - width shift range 0.1
+  - shear range 0.1
+  - zoom range 0.15
+
+The model performance and training progress can be seen in figures [[fig:loss]], [[fig:testprcurve]], and [[fig:testroccurve]]
+
+#+CAPTION: PnuemoniaXNet training performance: Training and validation losses.
+#+name: fig:loss
+[[./figs/models/model_densenet121_1/train_valid_loss_progress.png]]
+
+#+CAPTION: Testing set precision-recall curve
+#+name: fig:testprcurve
+[[./figs/models/model_densenet121_1/test_precision_recall_curve.png]]
+
+#+CAPTION: Testing set ROC curve
+#+name: fig:testroccurve
+[[./figs/models/model_densenet121_1/test_roc_curve.png]]
+
+##### Final Threshold and Explanation
+Our goal is to minimize the false negative (FN) predictions.
+Since the F1 score is proportional to 1/FN we are interested in maximizing the F1 score.
+Furthermore, the F1 metrics enables us to compare our results with previous work (see [[Algorithm Performance Standard]]).
+
+To maximize the F1 score we chose the prediction threshold 0.216 (see figure [[fig:threshold]]).
+
+#+CAPTION: Threshold selection based on F1 metric.
+#+name: fig:threshold
+[[./figs/models/model_densenet121_1/f1_vs_threshold.png]]
 
 
-For each stage of your algorithm, briefly describe the design and function.
+#### Databases
 
-**3. Algorithm Training**
+We train the PneumoniaXNet algorithm on the National Institutes of Health Chest X-Ray Dataset.
+This dataset is comprised of 112,120 X-ray images from CT scans with disease labels from 30,805 unique patients.
+It was not designed specifically for detecting pneumonia disease.
+It also contains other diseases.
+Patients might have multiple diseases simultaneously (see figures [[fig:diseases]] and [[fig:pneumoniacomorbidities]]).
+Altogether, it contains 15 classes with 14 diseases and one class for 'no findings' (no disease of the 14 diseases in this dataset).
+The patients' age, gender and viewing position of the X-ray images are depicted in figures [[fig:agedist]], [[fig:sexdist]] and [[fig:posdist]].
+The prevalence of the most common diseases in the dataset is visualized in figure [[fig:diseases]].
+When randomly splitting the dataset into training, validation and testing sets it is ensured that the ratios in all demographics are roughly maintained.
 
-Describe the following parameters of your algorithm and how they were chosen: 
+We preprocess the NIH chest X-ray dataset before we split it.
+For this we convert all patient ages to the unit year and delete all patients with age > 100 from the dataset (this is the case for 16 data points).
+The adjusted dataset contains 1430 images with pneumonia disease labels which corresponds to ~1.3% of all data points.
+We can say that according to the
 
-* Types of augmentation used during training
-* Batch size
-* Optimizer learning rate
-* Layers of pre-existing architecture that were frozen
-* Layers of pre-existing architecture that were fine-tuned
-* Layers added to pre-existing architecture
+#+CAPTION: Age demographics
+#+name: fig:agedist
+[[./figs/eda/age_distributions.png]]
 
-Also describe the behavior of the following throughout training (use visuals to show):
+#+CAPTION: Gender demographics
+#+name: fig:sexdist
+[[./figs/eda/sex_distributions.png]]
 
-* Training loss
-* Validation loss 
+#+CAPTION: Viewing position of X-ray images
+#+name: fig:posdist
+[[./figs/eda/viewing_posistion_distribution.png]]
 
-Describe the algorithm's final performance after training was complete by showing a precision-recall curve on your validation set.
+#+CAPTION: Prevalence of diseases
+#+name: fig:diseases
+[[./figs/eda/occurance_of_diseases.png]]
 
-Finally, report the threshold for classification that you chose and the corresponded F1 score, recall, and precision. Give one or two sentences of explanation for why you chose this threshold value. 
+#+CAPTION: Pneumonia comorbidities
+#+name: fig:pneumoniacomorbidities
+[[./figs/eda/cooccurance_matrices.png]]
 
-**4. Databases**
+#### Description of Training Dataset
+80% of the the patients in the NIH chest X-ray dataset are assigned to the (raw) training set.
+We split the dataset by patient to ensure that a patient can only be in one dataset (training, validation or testing set).
+The training set contains much more negative samples (no pneumonia) than positive samples (has pneumonia).
+We balance the training set by randomly chosing negative samples until we have the number of positive and negative samples.
+The rest negative samples in this dataset are discarded.
 
-For the database of patient data used, provide specific information about the training and validation datasets that you curated separately, including: 
+The final cardinality of the training dataset is 2302.
 
-* Size of the dataset
-* The number of positive cases and the its radio to the number of negative cases
-* The patient demographic data (as it is available)
-* The radiologic techniques used and views taken
-* The co-occurrence frequencies of pneumonia with other diseases and findings
+##### Description of Validation Dataset
+10% of all patients are assigned to the validation dataset.
+This set is used for picking the best performing model (weights) during training.
+In a clinical setting we assume a higher incidence of X-ray images with pneumonia than in a dataset which maps a 'complete population'.
+Therefore we do not sample data points from the validation set until we reach 1.3% of pneumonia cases in the dataset.
+Instead, we randomly sample data points so that we get a ratio of 20%/80% of positive and negative samples.
 
-**5. Ground Truth**
+The final cardinality of the validation dataset is 745.
 
-The methodology used to establish the ground truth can impact reported performance. Describe how the NIH created the ground truth for the data that was provided to you for this project. Describe the benefits and limitations of this type of ground truth.  
+##### Description of Testing Dataset
+10% of the patients are used for testing the performance of the PneumoniaXNet algorithm.
+This dataset is used to finally evaluate the model performance.
+It has the same ration between positive and negative samples as the validation dataset: 20%/80%.
 
-**6. FDA Validation Plan**
+The final cardinality of the testing dataset is 640.
 
-You will simply _describe_ how a FDA Validation Plan would be conducted for your algorithm, rather than actually performing the assessment. Describe the following: 
+#### Ground Truth
+The ground truth for the used data was created by the NIH.
+They extracted the labels with the help of a NLP algorithm running over radiology reports which are not publicly available.
+This process is prone to some erroneous labels because the NLP algorithm might misinterpret complex sentence structures.
+The NIH reports a NLP labeling accuracy of >90%.
+The NIH states that they had to deal with uncertainties in the radiology reports (see also [kaggle data source](https://www.kaggle.com/nih-chest-xrays/data)).
+Often they classified such uncertain cases as 'no finding'.
+The 'no finding' label can also contain diseases which are not considered in this dataset.
+This means that the 'no finding' label might still contain some diseases instead of being a scan of a healthy subject.
+All these limitations in data labels translate directly to the resulting algorithm which was trained on this data.
 
-* The patient population that you would request imaging data from from your clinical partner. Make sure to include: 
-    * Age ranges
-    * Sex
-    * Type of imaging modality
-    * Body part imaged
-    * Prevalence of disease of interest
-    * Any other diseases that should be included _or_ excluded as comorbidities in the population
+On the other hand the benefit of this method is to be able to label huge datasets in a very fast and cost efficient way.
 
-* Provide a short explanation of how you would obtain an optimal ground truth 
-* Provide a performance standard that you choose based on [this paper.](https://arxiv.org/pdf/1711.05225.pdf)
+#### FDA Validation Plan
+
+##### Patient Population Description for FDA Validation Dataset
+In this section we consider an ideal dataset that might be constructed by a clinical partner for the FDA validation dataset.
+The demographics of the FDA validation dataset should be similar to the NIH chest X-ray dataset on which the PneumoniaXNet algorithm was trained.
+This means:
+- Age ranges: 10 to 90 years
+- sex: male and females
+- type of imaging modality: DX (digital radiology)
+- body part imaged: chest
+- prevalence of disease of interest: 20 % so that it matches the validation set used to evaluate the PneumoniaXNet algorithm
+
+##### Ground Truth Acquisition Methodology
+The most affordable and reliable method of acquiring ground truth labels is to get multiple experts, e.g. radiologists to label the images for presence of pneumonia.
+A majority vote for each image would reveal the ground truth.
+This is the silver standard approach.
+
+The gold standard approach would be to take pathological samples of the tissue.
+This process is very time-consuming and expensive.
+If this method is available, even for a sub-sample of the available data, it will be valuable for evaluating the performance of the algorithm.
+
+##### Algorithm Performance Standard
+In a previous study done by [Rajpurkar et al.](https://arxiv.org/pdf/1711.05225.pdf) the authors trained an algortihm for detecting pneumonia.
+They measured the performance of their model by comparing the F1 score of the model predictions with the averaged F1 score of four expert radiologists' predictions.
+To get comparable evaluation results we use the F1 score as performance metric.
+The F1 score is the harmonic mean of recall and precission.
+The four expert radiologists achieved an averaged F1 score of 0.387.
+We use this "radiologist-level value" as standard to beat.
+
+With a F1 score of 0.41 the PneumoniaXNet algorithm performs at least as good as expert radiologists.
 
