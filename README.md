@@ -171,7 +171,8 @@ Description of a possible clinical setting:
 #### Algorithm Design and Function
 #+CAPTION: Flowchart of the PnuemoniaXNet algorithm (inference).
 #+name: fig:flowchart
-[[./figs/pneumoniaxnet_flowchart.png]]
+<img src="./figs/pneumoniaxnet_flowchart.png" width=700em>
+
 
 ##### DICOM Checking Steps
 Before a DICOM file is preprocessed and fed to the PneumoniaXNet algorithm it is checked if it contains the correct properties. The following things are checked:
@@ -217,15 +218,15 @@ The model performance and training progress can be seen in figures [[fig:loss]],
 
 #+CAPTION: PnuemoniaXNet training performance: Training and validation losses.
 #+name: fig:loss
-[[./figs/models/model_densenet121_1/train_valid_loss_progress.png]]
+<img src="./figs/models/model_densenet121_1/train_valid_loss_progress.png" width=700em>
 
 #+CAPTION: Testing set precision-recall curve
 #+name: fig:testprcurve
-[[./figs/models/model_densenet121_1/test_precision_recall_curve.png]]
+<img src="./figs/models/model_densenet121_1/test_precision_recall_curve.png" width=700em>
 
 #+CAPTION: Testing set ROC curve
 #+name: fig:testroccurve
-[[./figs/models/model_densenet121_1/test_roc_curve.png]]
+<img src="./figs/models/model_densenet121_1/test_roc_curve.png" width=700em>
 
 ##### Final Threshold and Explanation
 Our goal is to minimize the false negative (FN) predictions.
@@ -236,7 +237,8 @@ To maximize the F1 score we chose the prediction threshold 0.216 (see figure [[f
 
 #+CAPTION: Threshold selection based on F1 metric.
 #+name: fig:threshold
-[[./figs/models/model_densenet121_1/f1_vs_threshold.png]]
+<img src="./figs/models/model_densenet121_1/f1_vs_threshold.png" width=700em>
+
 
 
 #### Databases
@@ -258,25 +260,23 @@ We can say that according to the
 
 #+CAPTION: Age demographics
 #+name: fig:agedist
-[[./figs/eda/age_distributions.png]]
+<img src="./figs/eda/age_distributions.png" width=700em>
 
 #+CAPTION: Gender demographics
 #+name: fig:sexdist
-[[./figs/eda/sex_distributions.png]]
+<img src="./figs/eda/sex_distributions.png" width=700em>
 
 #+CAPTION: Viewing position of X-ray images
 #+name: fig:posdist
-[[./figs/eda/viewing_posistion_distribution.png]]
+<img src="./figs/eda/viewing_posistion_distribution.png" width=700em>
 
 #+CAPTION: Prevalence of diseases
 #+name: fig:diseases
-[[./figs/eda/occurance_of_diseases.png]]
+<img src="./figs/eda/occurance_of_diseases.png" width=700em>
 
 #+CAPTION: Pneumonia comorbidities
 #+name: fig:pneumoniacomorbidities
-[[./figs/eda/cooccurance_matrices.png]]
-
-[Drag Racing](./figs/eda/cooccurance_matrices.png)
+<img src="./figs/eda/cooccurance_matrices.png" width=700em>
 
 #### Description of Training Dataset
 80% of the the patients in the NIH chest X-ray dataset are assigned to the (raw) training set.
