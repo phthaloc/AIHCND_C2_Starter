@@ -60,68 +60,6 @@ Patient ID, Patient Age, Patient Gender, View Position, Original Image Size and 
 Pixel Spacing.
 
 
-## Project Steps
-
-### 1. Exploratory Data Analysis
-
-The file eda.ipynb contains the exploratory data analysis (EDA) of the dataset to understand and describe the content and nature of the data.
-
-Some analysis done during EDA: 
-
-* The patient demographic data such as gender, age, patient position,etc. (as it is available)
-* The x-ray views taken (i.e. view position)
-* The number of cases including: 
-    * number of pneumonia cases,
-    * number of non-pneumonia cases
-* The distribution of other diseases that are comorbid with pneumonia
-* Number of disease per patient 
-* Pixel-level assessments of the imaging data for healthy & disease states of interest (e.g. histograms of intensity values) and compare distributions across diseases.
-
-### 2. Building and Training the CNN Model
-
-**Training and validating Datasets**
-
-From your findings in the EDA component of this project, curate the appropriate training and validation sets for classifying pneumonia. Be sure to take the following into consideration: 
-
-* Distribution of diseases other than pneumonia that are present in both datasets
-* Demographic information, image view positions, and number of images per patient in each set
-* Distribution of pneumonia-positive and pneumonia-negative cases in each dataset
-
-**Model Architecture**
-
-reasonable choice would be using the VGG16 architecture with weights trained on the ImageNet dataset. Fine-tuning can be performed by freezing your chosen pre-built network and adding several new layers to the end to train, or by doing this in combination with selectively freezing and training some layers of the pre-trained network. 
-
-
-**Image Pre-Processing and Augmentation** 
-
-You may choose or need to do some amount of preprocessing prior to feeding imagees into your network for training and validating. This may serve the purpose of conforming to your model's architecture and/or for the purposes of augmenting your training dataset for increasing your model performance. When performing image augmentation, be sure to think about augmentation parameters that reflect real-world differences that may be seen in chest X-rays. 
-
-**Training** 
-
-In training your model, there are many parameters that can be tweaked to improve performance including: 
-* Image augmentation parameters
-* Training batch size
-* Training learning rate 
-* Inclusion and parameters of specific layers in your model 
-
-You will be asked to provide descriptions of the methods by which given parameters were chosen in the final FDA documentation.
-
- **Performance Assessment**
-
-As you train your model, you will monitor its performance over subsequence training epochs. Choose the appropriate metrics upon which to monitor performance. Note that 'accuracy' may not be the most appropriate statistic in this case, depending on the balance or imbalance of your validation dataset, and also depending on the clinical context that you want to use this model in (i.e. can you sacrafice high false positive rate for a low false negative rate?)
-
- __Note that detecting pneumonia is *hard* even for trained expert radiologists, so you should *not* expect to acheive sky-high performance.__ [This paper](https://arxiv.org/pdf/1711.05225.pdf) describes some human-reader-level F1 scores for detecting pneumonia, and can be used as a reference point for how well your model could perform.
-
-### 3. Clinical Workflow Integration 
-
-The imaging data provided to you for training your model was transformed from DICOM format into .png to help aid in the image pre-processing and model training steps of this project. In the real world, however, the pixel-level imaging data are contained inside of standard DICOM files. 
-
-For this project, create a DICOM wrapper that takes in a standard DICOM file and outputs data in the format accepted by your model. Be sure to include several checks in your wrapper for the following: 
-* Proper image acquisition type (i.e. X-ray)
-* Proper image acquisition orientation (i.e. those present in your training data)
-* Proper body part in acquisition
-
-
 ## Results in form of a FDA Submission
 
 ****Name of Device:**** PneumoniaXNet
@@ -380,5 +318,7 @@ The four expert radiologists achieved an averaged F1 score of 0.387.
 We use this &ldquo;radiologist-level value&rdquo; as standard to beat.
 
 With a F1 score of 0.41 the PneumoniaXNet algorithm performs at least as good as expert radiologists.
+
+*This project is part of the Udacity Nanodegree programm "AI in Healthcare" (November 2020).*
 
 
