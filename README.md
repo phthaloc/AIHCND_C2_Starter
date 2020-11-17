@@ -276,6 +276,8 @@ We can say that according to the
 #+name: fig:pneumoniacomorbidities
 [[./figs/eda/cooccurance_matrices.png]]
 
+[Drag Racing](./figs/eda/cooccurance_matrices.png)
+
 #### Description of Training Dataset
 80% of the the patients in the NIH chest X-ray dataset are assigned to the (raw) training set.
 We split the dataset by patient to ensure that a patient can only be in one dataset (training, validation or testing set).
